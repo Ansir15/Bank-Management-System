@@ -7,6 +7,7 @@ import system.bankingapp.frontend.AccountPage;
 import system.bankingapp.frontend.TransactionPage;
 import system.bankingapp.frontend.LoanPage;
 import system.bankingapp.frontend.CardPage;
+import system.bankingapp.frontend.EmployeePage;
 import uifactory.SideBar;
 
 import javax.swing.*;
@@ -30,7 +31,7 @@ public class AdminPage extends JFrame {
         sidebar.addMenuItem("Transactions", "#FF6B6B", FontAwesomeSolid.EXCHANGE_ALT,     new Color(255, 107, 107), new TransactionPage());
         sidebar.addMenuItem("Loans",        "#F4A261", FontAwesomeSolid.HAND_HOLDING_USD, new Color(244, 162,  97), new LoanPage());
         sidebar.addMenuItem("Cards",        "#9B5DE5", FontAwesomeSolid.CREDIT_CARD,      new Color(155,  93, 229), new CardPage());
-        sidebar.addMenuItem("Employees",    "#06D6A0", FontAwesomeSolid.USER_TIE,         new Color(6,   214, 160), new JPanel());
+        sidebar.addMenuItem("Employees",    "#06D6A0", FontAwesomeSolid.USER_TIE,         new Color(6,   214, 160), new EmployeePage());
         sidebar.addMenuItem("Branches",     "#118AB2", FontAwesomeSolid.CODE_BRANCH,      new Color(17,  138, 178), new JPanel());
         frame.add(sidebar);
         frame.setVisible(true);
