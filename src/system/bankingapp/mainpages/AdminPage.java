@@ -4,6 +4,7 @@ import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import system.bankingapp.frontend.CustomerPage;
 import system.bankingapp.frontend.AccountPage;
+import system.bankingapp.frontend.TransactionPage;
 import uifactory.SideBar;
 
 import javax.swing.*;
@@ -24,7 +25,7 @@ public class AdminPage extends JFrame {
 
         sidebar.addMenuItem("Customers",    "#3A86FF", FontAwesomeSolid.USERS,           new Color(58,  134, 255), new CustomerPage());
         sidebar.addMenuItem("Accounts",     "#2EC4B6", FontAwesomeSolid.UNIVERSITY,       new Color(46,  196, 182), new AccountPage());
-//        sidebar.addMenuItem("Transactions", "#FF6B6B", FontAwesomeSolid.EXCHANGE_ALT,     new Color(255, 107, 107), new TransactionPage());
+        sidebar.addMenuItem("Transactions", "#FF6B6B", FontAwesomeSolid.EXCHANGE_ALT,     new Color(255, 107, 107), new TransactionPage());
         sidebar.addMenuItem("Loans",        "#F4A261", FontAwesomeSolid.HAND_HOLDING_USD, new Color(244, 162,  97), new JPanel());
         sidebar.addMenuItem("Cards",        "#9B5DE5", FontAwesomeSolid.CREDIT_CARD,      new Color(155,  93, 229), new JPanel());
         sidebar.addMenuItem("Employees",    "#06D6A0", FontAwesomeSolid.USER_TIE,         new Color(6,   214, 160), new JPanel());

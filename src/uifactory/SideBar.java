@@ -71,7 +71,6 @@ public class SideBar extends JPanel {
         float brightness = hsb[2];
 
         if (isDarkTheme()) {
-            // Dark bg: push brightness up so icon pops, keep saturation high but not harsh
             float targetBrightness = Math.max(brightness, 0.82f);
             float targetSaturation = Math.min(saturation + 0.10f, 0.75f);
             return Color.getHSBColor(hue, targetSaturation, targetBrightness);
