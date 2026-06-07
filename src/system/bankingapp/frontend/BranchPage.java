@@ -17,6 +17,7 @@ public class BranchPage extends JPanel {
 
     private JTable            table;
     private DefaultTableModel tableModel;
+    private DefaultTableModel accountsPerBranchModel;
     private JTextField        searchField;
     private JComboBox<String> cityFilter;
     private JLabel            totalLabel, accountsLabel;
@@ -168,19 +169,28 @@ public class BranchPage extends JPanel {
                 "Accounts per Branch", TitledBorder.LEFT, TitledBorder.TOP,
                 new Font("Segoe UI", Font.BOLD, 12)));
 
-        DefaultTableModel m = new DefaultTableModel(new String[]{"Branch","Accounts"}, 0) {
+        accountsPerBranchModel = new DefaultTableModel(new String[]{"Branch", "Accounts"}, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
         };
-        JTable t = new JTable(m);
+
+        JTable t = new JTable(accountsPerBranchModel);
         t.setRowHeight(26);
         t.setShowVerticalLines(false);
         t.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
         t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        for (String[] row : backend.getAccountsPerBranch()) m.addRow(row);
+
+        refreshAccountsPerBranch();
 
         p.add(new JScrollPane(t), BorderLayout.CENTER);
         p.setPreferredSize(new Dimension(0, 130));
         return p;
+    }
+
+    private void refreshAccountsPerBranch() {
+        if (accountsPerBranchModel == null) return;
+        accountsPerBranchModel.setRowCount(0);
+        for (String[] row : backend.getAccountsPerBranch())
+            accountsPerBranchModel.addRow(row);
     }
 
     private JPanel buildTablePanel() {
@@ -294,8 +304,8 @@ public class BranchPage extends JPanel {
         table.clearSelection();
     }
 
-    private void doSearch()    { String kw = searchField.getText().trim(); loadTable(kw.isEmpty() ? backend.getAllBranches() : backend.searchBranches(kw)); }
-    private void doCityFilter(){ String c = (String) cityFilter.getSelectedItem(); loadTable(c.startsWith("All") ? backend.getAllBranches() : backend.filterByCity(c)); }
+    private void doSearch()     { String kw = searchField.getText().trim(); loadTable(kw.isEmpty() ? backend.getAllBranches() : backend.searchBranches(kw)); }
+    private void doCityFilter() { String c = (String) cityFilter.getSelectedItem(); loadTable(c.startsWith("All") ? backend.getAllBranches() : backend.filterByCity(c)); }
 
     private void refresh() {
         searchField.setText(""); cityFilter.setSelectedIndex(0);
@@ -303,6 +313,7 @@ public class BranchPage extends JPanel {
         cityFilter.addItem("All Cities");
         backend.getDistinctCities().forEach(cityFilter::addItem);
         loadTable(backend.getAllBranches());
+        refreshAccountsPerBranch();
     }
 
     private void loadTable(ArrayList<Branch> list) {
@@ -318,6 +329,7 @@ public class BranchPage extends JPanel {
         for (String[] row : backend.getAccountsPerBranch())
             sb.append(row[0]).append("(").append(row[1]).append(") ");
         accountsLabel.setText(sb.toString());
+        refreshAccountsPerBranch();
     }
 
     private void fitColumns(int[] widths) {

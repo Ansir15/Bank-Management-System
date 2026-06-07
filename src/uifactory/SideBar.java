@@ -5,6 +5,9 @@ import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.GeneralPath;
+import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 import java.text.SimpleDateFormat;
@@ -34,8 +37,9 @@ public class SideBar extends JPanel {
     private JLabel         dateTimeLabel;
     private Timer          clockTimer;
     private ActionListener logoutAction;
-    private String         userName   = "User Name";
-    private String         userStatus = "Online";
+    private String         userName    = "User Name";
+    private String         userStatus  = "Online";
+    private BufferedImage  avatarImage = null;
 
     private static boolean isDarkTheme() {
         Color bg = UIManager.getColor("Panel.background");
@@ -56,34 +60,18 @@ public class SideBar extends JPanel {
         return new Color(37, 99, 235);
     }
 
-    /**
-     * Takes any base color and returns a version that is:
-     * - visible against the current theme background
-     * - preserves the hue/character of the original color
-     * - not washed out in dark themes, not too bright in light themes
-     */
     private static Color getAdaptiveIconColor(Color base) {
         if (base == null) base = new Color(37, 99, 235);
-
         float[] hsb = Color.RGBtoHSB(base.getRed(), base.getGreen(), base.getBlue(), null);
-        float hue        = hsb[0];
-        float saturation = hsb[1];
-        float brightness = hsb[2];
-
+        float hue = hsb[0], saturation = hsb[1], brightness = hsb[2];
         if (isDarkTheme()) {
-            float targetBrightness = Math.max(brightness, 0.82f);
-            float targetSaturation = Math.min(saturation + 0.10f, 0.75f);
-            return Color.getHSBColor(hue, targetSaturation, targetBrightness);
+            return Color.getHSBColor(hue, Math.min(saturation + 0.10f, 0.75f), Math.max(brightness, 0.82f));
         } else {
-            // Light bg: push brightness down so icon has enough contrast, keep saturation vivid
-            float targetBrightness = Math.min(brightness, 0.72f);
-            float targetSaturation = Math.min(saturation + 0.08f, 0.90f);
-            return Color.getHSBColor(hue, targetSaturation, targetBrightness);
+            return Color.getHSBColor(hue, Math.min(saturation + 0.08f, 0.90f), Math.min(brightness, 0.72f));
         }
     }
 
     public static class MenuColors {
-
         public static Color lighten(Color c, float amt) {
             return new Color(
                     Math.min(255, (int)(c.getRed()   + (255 - c.getRed())   * amt)),
@@ -91,7 +79,6 @@ public class SideBar extends JPanel {
                     Math.min(255, (int)(c.getBlue()  + (255 - c.getBlue())  * amt))
             );
         }
-
         public static Color darken(Color c, float amt) {
             return new Color(
                     Math.max(0, (int)(c.getRed()   * (1f - amt))),
@@ -121,6 +108,22 @@ public class SideBar extends JPanel {
         private String pendingTitle = null;
         private Timer  titleFadeTimer;
 
+        private static final int PARTICLE_COUNT = 22;
+        private float[] px     = new float[PARTICLE_COUNT];
+        private float[] py     = new float[PARTICLE_COUNT];
+        private float[] pvx    = new float[PARTICLE_COUNT];
+        private float[] pvy    = new float[PARTICLE_COUNT];
+        private float[] psize  = new float[PARTICLE_COUNT];
+        private float[] palpha = new float[PARTICLE_COUNT];
+        private int[]   pshape = new int[PARTICLE_COUNT];
+        private Timer   particleTimer;
+
+        private float waveOffset = 0f;
+        private Timer waveTimer;
+
+        private float orbitAngle = 0f;
+        private Timer orbitTimer;
+
         AnimatedHeaderBar() {
             currentColor = getThemeAccentColor();
             targetColor  = currentColor;
@@ -131,6 +134,28 @@ public class SideBar extends JPanel {
                     BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(255, 255, 255, 40)),
                     new EmptyBorder(12, 20, 12, 20)
             ));
+
+            initParticles();
+
+            particleTimer = new Timer(16, e -> {
+                int w = getWidth(), h = getHeight();
+                if (w <= 0 || h <= 0) return;
+                for (int i = 0; i < PARTICLE_COUNT; i++) {
+                    px[i] += pvx[i]; py[i] += pvy[i];
+                    if (px[i] < -10)  px[i] = w + 10;
+                    if (px[i] > w+10) px[i] = -10;
+                    if (py[i] < -10)  py[i] = h + 10;
+                    if (py[i] > h+10) py[i] = -10;
+                }
+                repaint();
+            });
+            particleTimer.start();
+
+            waveTimer = new Timer(18, e -> { waveOffset += 0.018f; repaint(); });
+            waveTimer.start();
+
+            orbitTimer = new Timer(20, e -> { orbitAngle += 0.012f; repaint(); });
+            orbitTimer.start();
 
             shimmerTimer = new Timer(22, e -> {
                 shimmerOffset += 0.008f;
@@ -156,6 +181,21 @@ public class SideBar extends JPanel {
                 if (!any) ((Timer) e.getSource()).stop();
                 repaint();
             });
+        }
+
+        private void initParticles() {
+            Random rnd = new Random();
+            for (int i = 0; i < PARTICLE_COUNT; i++) {
+                px[i]    = rnd.nextFloat() * 1400;
+                py[i]    = rnd.nextFloat() * 60;
+                float spd = 0.25f + rnd.nextFloat() * 0.55f;
+                float ang = rnd.nextFloat() * (float)(Math.PI * 2);
+                pvx[i]   = (float)(Math.cos(ang) * spd);
+                pvy[i]   = (float)(Math.sin(ang) * spd);
+                psize[i] = 2.5f + rnd.nextFloat() * 5.5f;
+                palpha[i]= 0.08f + rnd.nextFloat() * 0.22f;
+                pshape[i]= rnd.nextInt(3);
+            }
         }
 
         void transitionToColor(Color target, int clickX, int clickY) {
@@ -225,6 +265,10 @@ public class SideBar extends JPanel {
             g2.setPaint(new GradientPaint(0, 0, light, w, h, dark));
             g2.fillRect(0, 0, w, h);
 
+            drawWave(g2, w, h, base);
+            drawOrbitingRings(g2, w, h);
+            drawParticles(g2);
+
             g2.setPaint(new GradientPaint(
                     (int)(w * (shimmerOffset - 0.35f)), 0, new Color(255, 255, 255, 0),
                     (int)(w * shimmerOffset),           0, new Color(255, 255, 255, 28), false));
@@ -241,6 +285,72 @@ public class SideBar extends JPanel {
             g2.setColor(new Color(255, 255, 255, 22));
             g2.fillRect(0, h - 1, w, 1);
             g2.dispose();
+        }
+
+        private void drawWave(Graphics2D g2, int w, int h, Color base) {
+            for (int wave = 0; wave < 2; wave++) {
+                float phaseShift  = wave * 1.1f;
+                float ampFraction = wave == 0 ? 0.38f : 0.22f;
+                int   alpha       = wave == 0 ? 18 : 12;
+                GeneralPath path  = new GeneralPath();
+                path.moveTo(0, h);
+                for (int x = 0; x <= w; x += 3) {
+                    double y = h * (1 - ampFraction)
+                            + Math.sin((x / (double) w) * Math.PI * 3.5 + waveOffset + phaseShift) * (h * ampFraction * 0.55)
+                            + Math.cos((x / (double) w) * Math.PI * 2.0 + waveOffset * 0.7 + phaseShift) * (h * ampFraction * 0.3);
+                    path.lineTo(x, (float) y);
+                }
+                path.lineTo(w, h);
+                path.closePath();
+                Color wc = MenuColors.lighten(base, 0.35f);
+                g2.setColor(new Color(wc.getRed(), wc.getGreen(), wc.getBlue(), alpha));
+                g2.fill(path);
+            }
+        }
+
+        private void drawOrbitingRings(Graphics2D g2, int w, int h) {
+            int[][] centers = { {w / 6, h / 2}, {w - w / 5, h / 2} };
+            float[] radii   = { h * 0.55f, h * 0.40f };
+            float[] alphas  = { 0.13f, 0.10f };
+            float[] speeds  = { 1f, -1.4f };
+            for (int c = 0; c < centers.length; c++) {
+                int   cx = centers[c][0], cy = centers[c][1];
+                float r  = radii[c];
+                g2.setColor(new Color(255, 255, 255, (int)(alphas[c] * 80)));
+                g2.setStroke(new BasicStroke(0.7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{3, 5}, 0));
+                g2.drawOval((int)(cx - r), (int)(cy - r), (int)(r * 2), (int)(r * 2));
+                g2.setStroke(new BasicStroke(1.5f));
+                for (int d = 0; d < 2; d++) {
+                    float angle = orbitAngle * speeds[c] + d * (float) Math.PI;
+                    int   dx    = (int)(cx + Math.cos(angle) * r);
+                    int   dy    = (int)(cy + Math.sin(angle) * r * 0.45f);
+                    g2.setColor(new Color(1f, 1f, 1f, Math.min(1f, alphas[c])));
+                    g2.fillOval(dx - 5, dy - 5, 10, 10);
+                    g2.setColor(new Color(1f, 1f, 1f, Math.min(1f, alphas[c] * 2f)));
+                    g2.fillOval(dx - 3, dy - 3, 6, 6);
+                }
+            }
+        }
+
+        private void drawParticles(Graphics2D g2) {
+            for (int i = 0; i < PARTICLE_COUNT; i++) {
+                float a = palpha[i];
+                float s = psize[i];
+                int   x = (int) px[i], y = (int) py[i];
+                g2.setColor(new Color(1f, 1f, 1f, Math.min(1f, a)));
+                switch (pshape[i]) {
+                    case 0 -> g2.fillOval(x, y, (int) s, (int) s);
+                    case 1 -> {
+                        int hs = (int)(s / 2);
+                        g2.fillPolygon(new int[]{x, x+hs, x+(int)s, x+hs}, new int[]{y+hs, y, y+hs, y+(int)s}, 4);
+                    }
+                    case 2 -> {
+                        int hs = (int)(s / 2), th = Math.max(1, (int)(s / 4));
+                        g2.fillRect(x + hs - th, y, th * 2, (int) s);
+                        g2.fillRect(x, y + hs - th, (int) s, th * 2);
+                    }
+                }
+            }
         }
 
         private Color interpolateColor(Color a, Color b, float t) {
@@ -288,13 +398,13 @@ public class SideBar extends JPanel {
 
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setOpaque(false);
-        centerPanel.add(separator,           BorderLayout.NORTH);
-        centerPanel.add(menuItemsContainer,  BorderLayout.CENTER);
+        centerPanel.add(separator,          BorderLayout.NORTH);
+        centerPanel.add(menuItemsContainer, BorderLayout.CENTER);
 
         JPanel contentWrapper = new JPanel(new BorderLayout());
         contentWrapper.setOpaque(false);
-        contentWrapper.add(topPanel,     BorderLayout.NORTH);
-        contentWrapper.add(centerPanel,  BorderLayout.CENTER);
+        contentWrapper.add(topPanel,    BorderLayout.NORTH);
+        contentWrapper.add(centerPanel, BorderLayout.CENTER);
 
         scrollPane = new JScrollPane(contentWrapper);
         scrollPane.setBorder(null);
@@ -337,6 +447,11 @@ public class SideBar extends JPanel {
 
         startClock();
         setupGlobalKeyboardShortcuts();
+    }
+
+    public void setAvatarImage(BufferedImage img) {
+        this.avatarImage = img;
+        updateUserProfileVisibility();
     }
 
     @Override
@@ -590,8 +705,8 @@ public class SideBar extends JPanel {
     }
 
     private Color getHoverColor() {
-        Color bg  = getSidebarBg();
-        int avg   = (bg.getRed() + bg.getGreen() + bg.getBlue()) / 3;
+        Color bg = getSidebarBg();
+        int avg  = (bg.getRed() + bg.getGreen() + bg.getBlue()) / 3;
         return avg < 128
                 ? new Color(Math.min(255, bg.getRed() + 30), Math.min(255, bg.getGreen() + 30), Math.min(255, bg.getBlue() + 30), 180)
                 : new Color(Math.max(0, bg.getRed() - 22),   Math.max(0, bg.getGreen() - 22),   Math.max(0, bg.getBlue() - 22),   200);
@@ -639,17 +754,13 @@ public class SideBar extends JPanel {
                 if (selected) {
                     g2.setColor(getThemeAccentColor());
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
-
                 } else if (hoverAmt > 0f) {
                     Color hc = getHoverColor();
                     g2.setColor(new Color(hc.getRed(), hc.getGreen(), hc.getBlue(), (int)(hc.getAlpha() * hoverAmt)));
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9, 9);
                 }
 
-                Color iconClr = selected
-                        ? Color.WHITE
-                        : getAdaptiveIconColor(item.iconColor);
-
+                Color iconClr = selected ? Color.WHITE : getAdaptiveIconColor(item.iconColor);
                 Color textClr;
                 if (selected) {
                     textClr = Color.WHITE;
@@ -669,10 +780,9 @@ public class SideBar extends JPanel {
                     g2.setColor(textClr);
                     FontMetrics fm = g2.getFontMetrics();
                     g2.drawString(item.title, x, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
-
                     if (!item.children.isEmpty()) {
-                        Ikon arrow  = item.isExpanded ? FontAwesomeSolid.CHEVRON_DOWN : FontAwesomeSolid.CHEVRON_RIGHT;
-                        Color arrC  = selected
+                        Ikon arrow = item.isExpanded ? FontAwesomeSolid.CHEVRON_DOWN : FontAwesomeSolid.CHEVRON_RIGHT;
+                        Color arrC = selected
                                 ? new Color(255, 255, 255, 200)
                                 : new Color(textClr.getRed(), textClr.getGreen(), textClr.getBlue(), 160);
                         FontIcon.of(arrow, 11, arrC).paintIcon(this, g2, getWidth() - 26, (getHeight() - 11) / 2);
@@ -718,8 +828,43 @@ public class SideBar extends JPanel {
         });
         return button;
     }
+
     private MenuItem getFirstLeaf(MenuItem item) {
         return item.children.isEmpty() ? item : getFirstLeaf(item.children.get(0));
+    }
+
+    private JLabel buildAvatarLabel(int size) {
+        return new JLabel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (avatarImage != null) {
+                    BufferedImage scaled = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D sg = scaled.createGraphics();
+                    sg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    sg.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                    sg.setClip(new Ellipse2D.Float(0, 0, size, size));
+                    sg.drawImage(avatarImage, 0, 0, size, size, null);
+                    sg.dispose();
+                    g2.drawImage(scaled, 0, 0, null);
+                    g2.setColor(getThemeAccentColor());
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.drawOval(1, 1, size - 2, size - 2);
+                } else {
+                    Color accent = getThemeAccentColor();
+                    g2.setPaint(new GradientPaint(0, 0, accent, size, size, MenuColors.lighten(accent, 0.3f)));
+                    g2.fillOval(0, 0, size, size);
+                    FontIcon.of(FontAwesomeSolid.USER, size / 2, Color.WHITE).paintIcon(this, g2, size / 4, size / 4);
+                }
+                g2.setColor(new Color(34, 197, 94));
+                g2.fillOval(size - 11, size - 11, 10, 10);
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawOval(size - 11, size - 11, 10, 10);
+                g2.dispose();
+            }
+            @Override public Dimension getPreferredSize() { return new Dimension(size, size); }
+        };
     }
 
     private JPanel createUserProfilePanel() {
@@ -744,19 +889,6 @@ public class SideBar extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(10, 1, 10, 10));
         panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        JLabel avatarLabel = new JLabel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color accent = getThemeAccentColor();
-                g2.setPaint(new GradientPaint(0, 0, accent, 36, 36, MenuColors.lighten(accent, 0.3f)));
-                g2.fillOval(0, 0, 36, 36);
-                FontIcon.of(FontAwesomeSolid.USER, 18, Color.WHITE).paintIcon(this, g2, 9, 9);
-                g2.dispose();
-            }
-            @Override public Dimension getPreferredSize() { return new Dimension(36, 36); }
-        };
 
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
@@ -785,31 +917,21 @@ public class SideBar extends JPanel {
             @Override public Dimension getPreferredSize() { return new Dimension(14, 14); }
         };
 
-        panel.add(avatarLabel, BorderLayout.WEST);
-        panel.add(textPanel,   BorderLayout.CENTER);
-        panel.add(toggleIcon,  BorderLayout.EAST);
+        panel.add(buildAvatarLabel(36), BorderLayout.WEST);
+        panel.add(textPanel,            BorderLayout.CENTER);
+        panel.add(toggleIcon,           BorderLayout.EAST);
         return panel;
     }
 
     private JPanel createCollapsedUserProfile() {
-        JPanel p = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                int size = 38;
-                int x    = (getWidth() - size) / 2 - 5;
-                Color accent = getThemeAccentColor();
-                g2.setPaint(new GradientPaint(x, 5, accent, x + size, 5 + size, MenuColors.lighten(accent, 0.3f)));
-                g2.fillOval(x, 5, size, size);
-                FontIcon.of(FontAwesomeSolid.USER, 20, Color.WHITE).paintIcon(this, g2, x + 9, 14);
-                g2.dispose();
-            }
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 6)) {
+            @Override protected void paintComponent(Graphics g) { super.paintComponent(g); }
         };
         p.setOpaque(false);
-        p.setPreferredSize(new Dimension(collapsedWidth, 50));
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        p.setPreferredSize(new Dimension(collapsedWidth, 52));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
         p.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        p.add(buildAvatarLabel(38));
         p.addMouseListener(new MouseAdapter() { public void mouseClicked(MouseEvent e) { toggleSidebar(); } });
         return p;
     }
@@ -881,9 +1003,9 @@ public class SideBar extends JPanel {
 
     private void collectVisible(List<MenuItem> items, List<MenuItem> result) {
         for (MenuItem item : items) {
-            if      (item.children.isEmpty())            result.add(item);
-            else if (item.isExpanded && isExpanded)      collectVisible(item.children, result);
-            else                                         result.add(item);
+            if      (item.children.isEmpty())       result.add(item);
+            else if (item.isExpanded && isExpanded)  collectVisible(item.children, result);
+            else                                     result.add(item);
         }
     }
 
@@ -899,7 +1021,7 @@ public class SideBar extends JPanel {
                 int idx = key - KeyEvent.VK_1;
                 if (idx < menuItems.size()) { handleMenuItemKeyPress(menuItems.get(idx)); return true; }
             }
-            if (key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT) { toggleSidebar();      return true; }
+            if (key == KeyEvent.VK_LEFT || key == KeyEvent.VK_RIGHT) { toggleSidebar();       return true; }
             if (key == KeyEvent.VK_UP)                                { navigateMenuItems(-1); return true; }
             if (key == KeyEvent.VK_DOWN)                              { navigateMenuItems(1);  return true; }
             return false;
@@ -931,89 +1053,6 @@ public class SideBar extends JPanel {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try { UIManager.setLookAndFeel(new FlatMacLightLaf()); } catch (Exception ex) { ex.printStackTrace(); }
-
-            JFrame frame = new JFrame("Collapsible Sidebar");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(1400, 900);
-            frame.setExtendedState(Frame.MAXIMIZED_BOTH);
-
-            JPanel mainPanel = new JPanel(new BorderLayout());
-            JPanel themePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-            themePanel.setBorder(new EmptyBorder(5, 5, 5, 5));
-
-            JComboBox<String> themeCombo = new JComboBox<>(new String[]{
-                    "FlatLaf macOS Light", "FlatLaf macOS Dark",
-                    "FlatLaf Light",       "FlatLaf Dark",
-                    "Windows Classic",     "Nimbus", "Motif"
-            });
-            themeCombo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-
-            JButton applyTheme = new JButton("Apply Theme");
-            applyTheme.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-            JLabel hint = new JLabel("  Drag divider  |  Ctrl+1~9 = Menu  |  ↑↓ = Navigate  |  Ctrl+←→ = Toggle");
-            hint.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-            hint.setForeground(new Color(110, 110, 110));
-
-            JButton userBtn = new JButton("Change User");
-
-            themePanel.add(new JLabel("Theme:"));
-            themePanel.add(themeCombo);
-            themePanel.add(applyTheme);
-            themePanel.add(Box.createHorizontalStrut(20));
-            themePanel.add(userBtn);
-            themePanel.add(hint);
-
-            SideBar sidebar = new SideBar(e -> {
-                if (JOptionPane.showConfirmDialog(frame, "Logout?", "Logout", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
-                    System.out.println("Logged out");
-            });
-
-            sidebar.setUserProfile("Ahmad Ali", "Online");
-
-            sidebar.addMenuItem("Dashboard",  "blue",   FontAwesomeSolid.TACHOMETER_ALT, new Color(37,  99,  235), createPanel("Dashboard"));
-            sidebar.addSubMenuItem("Dashboard", "Overview", "cyan",   FontAwesomeSolid.EYE,      new Color(6,   182, 212), createPanel("Overview"), 2);
-            sidebar.addSubMenuItem("Dashboard", "Reports",  "indigo", FontAwesomeSolid.FILE_ALT,  new Color(79,  70,  229), createPanel("Reports"),  2);
-            sidebar.addMenuItem("Products",   "green",  FontAwesomeSolid.BOX,            new Color(22,  163, 74),  createPanel("Products"));
-            sidebar.addSubMenuItem("Products", "Electronics", "cyan",   FontAwesomeSolid.LAPTOP, new Color(6,   182, 212), createPanel("Electronics"), 2);
-            sidebar.addSubMenuItem("Products", "Clothing",    "orange", FontAwesomeSolid.TSHIRT,  new Color(234, 88,  12),  createPanel("Clothing"),    2);
-            sidebar.addMenuItem("Analytics",  "teal",   FontAwesomeSolid.CHART_BAR,      new Color(15,  172, 155), createPanel("Analytics"));
-            sidebar.addMenuItem("Finance",    "blue",   FontAwesomeSolid.DOLLAR_SIGN,    new Color(30,  100, 210), createPanel("Finance"));
-            sidebar.addMenuItem("Settings",   "gray",   FontAwesomeSolid.COG,            new Color(71,  85,  105), createPanel("Settings"));
-            sidebar.addSubMenuItem("Settings", "Profile",  "blue", FontAwesomeSolid.USER_COG,   new Color(37,  99,  235), createPanel("Profile"),  2);
-            sidebar.addSubMenuItem("Settings", "Security", "red",  FontAwesomeSolid.SHIELD_ALT, new Color(220, 38,  38),  createPanel("Security"), 2);
-
-            applyTheme.addActionListener(e -> {
-                try {
-                    switch ((String) themeCombo.getSelectedItem()) {
-                        case "FlatLaf macOS Light" -> UIManager.setLookAndFeel(new FlatMacLightLaf());
-                        case "FlatLaf macOS Dark"  -> UIManager.setLookAndFeel(new FlatMacDarkLaf());
-                        case "FlatLaf Light"       -> UIManager.setLookAndFeel(new FlatLightLaf());
-                        case "FlatLaf Dark"        -> UIManager.setLookAndFeel(new FlatDarkLaf());
-                        case "Nimbus"              -> UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-                        case "Motif"               -> UIManager.setLookAndFeel("com.sun.java.swing.plaf.motif.MotifLookAndFeel");
-                        case "Windows Classic"     -> UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsClassicLookAndFeel");
-                        default                    -> UIManager.setLookAndFeel(new FlatLightLaf());
-                    }
-                    SwingUtilities.updateComponentTreeUI(frame);
-                    sidebar.refreshSidebar();
-                } catch (Exception ex) { ex.printStackTrace(); }
-            });
-
-            userBtn.addActionListener(e -> {
-                String[] names    = {"Ahmad Ali", "Sarah Khan", "John Doe"};
-                String[] statuses = {"Online", "Away", "Busy"};
-                Random rnd        = new Random();
-                sidebar.setUserProfile(names[rnd.nextInt(names.length)], statuses[rnd.nextInt(statuses.length)]);
-            });
-
-            mainPanel.add(themePanel, BorderLayout.NORTH);
-            mainPanel.add(sidebar,    BorderLayout.CENTER);
-            frame.add(mainPanel);
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
+        system.bankingapp.frontend.LoginPage.main(args);
     }
 }
