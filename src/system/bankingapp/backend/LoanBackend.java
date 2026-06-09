@@ -47,7 +47,7 @@ public class LoanBackend {
     private static final String SUM_PRINCIPAL_QUERY  = "SELECT COALESCE(SUM(principal_amount),0) FROM loans WHERE status='Approved'";
 
     public LoanBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertLoan(Loan l) {

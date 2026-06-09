@@ -54,7 +54,7 @@ public class TransactionBackend {
     private static final String SUM_WITHDRAW   = "SELECT COALESCE(SUM(amount),0) AS total FROM transactions WHERE transaction_type='WITHDRAW'";
 
     public TransactionBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertTransaction(Transaction t) {

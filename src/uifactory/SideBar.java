@@ -57,11 +57,11 @@ public class SideBar extends JPanel {
             Color c = UIManager.getColor(key);
             if (c != null) return c;
         }
-        return new Color(37, 99, 235);
+        return AppTheme.accentFromTheme();
     }
 
     private static Color getAdaptiveIconColor(Color base) {
-        if (base == null) base = new Color(37, 99, 235);
+        if (base == null) base = AppTheme.PRIMARY;
         float[] hsb = Color.RGBtoHSB(base.getRed(), base.getGreen(), base.getBlue(), null);
         float hue = hsb[0], saturation = hsb[1], brightness = hsb[2];
         if (isDarkTheme()) {
@@ -538,12 +538,12 @@ public class SideBar extends JPanel {
                 g2.dispose();
             }
         };
-        headerTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        headerTitle.setFont(AppTheme.font(Font.BOLD, 20));
         headerTitle.setForeground(Color.WHITE);
         leftPanel.add(headerTitle);
 
         dateTimeLabel = new JLabel();
-        dateTimeLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        dateTimeLabel.setFont(AppTheme.bodyBold());
         dateTimeLabel.setForeground(new Color(255, 255, 255, 225));
 
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
@@ -591,7 +591,7 @@ public class SideBar extends JPanel {
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
                 FontIcon.of(FontAwesomeSolid.SIGN_OUT_ALT, 14, Color.WHITE).paintIcon(this, g2, 10, (getHeight() - 14) / 2);
                 g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 13));
+                g2.setFont(AppTheme.bodyBold());
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString("Logout", 32, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
                 g2.dispose();
@@ -776,7 +776,7 @@ public class SideBar extends JPanel {
                         FontIcon.of(item.icon, sz, iconClr).paintIcon(this, g2, x, (getHeight() - sz) / 2);
                         x += 28;
                     }
-                    g2.setFont(new Font("Segoe UI", selected ? Font.BOLD : Font.PLAIN, 13));
+                    g2.setFont(AppTheme.font(selected ? Font.BOLD : Font.PLAIN, 13));
                     g2.setColor(textClr);
                     FontMetrics fm = g2.getFontMetrics();
                     g2.drawString(item.title, x, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
@@ -856,7 +856,7 @@ public class SideBar extends JPanel {
                     g2.fillOval(0, 0, size, size);
                     FontIcon.of(FontAwesomeSolid.USER, size / 2, Color.WHITE).paintIcon(this, g2, size / 4, size / 4);
                 }
-                g2.setColor(new Color(34, 197, 94));
+                g2.setColor(AppTheme.SUCCESS);
                 g2.fillOval(size - 11, size - 11, 10, 10);
                 g2.setColor(Color.WHITE);
                 g2.setStroke(new BasicStroke(1.5f));
@@ -895,12 +895,12 @@ public class SideBar extends JPanel {
         textPanel.setOpaque(false);
 
         JLabel nameLabel = new JLabel(userName);
-        nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        nameLabel.setFont(AppTheme.font(Font.BOLD, 14));
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel statusLabel = new JLabel(userStatus);
-        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        statusLabel.setForeground(new Color(100, 160, 100));
+        statusLabel.setFont(AppTheme.small());
+        statusLabel.setForeground(AppTheme.SECONDARY);
         statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         textPanel.add(nameLabel);
@@ -1047,7 +1047,7 @@ public class SideBar extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(new EmptyBorder(20, 20, 20, 20));
         JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        label.setFont(AppTheme.font(Font.BOLD, 24));
         panel.add(label, BorderLayout.CENTER);
         return panel;
     }

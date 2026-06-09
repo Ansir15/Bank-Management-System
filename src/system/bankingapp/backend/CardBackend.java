@@ -44,7 +44,7 @@ public class CardBackend {
     private static final String COUNT_BLOCKED= "SELECT COUNT(*) FROM cards WHERE status='Blocked'";
 
     public CardBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertCard(Card c) {

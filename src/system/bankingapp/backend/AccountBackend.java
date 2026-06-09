@@ -59,7 +59,7 @@ public class AccountBackend {
     private static final String GENERATE_ACCNUM_QUERY = "SELECT MAX(CAST(SUBSTRING(account_number,4) AS UNSIGNED)) AS maxnum FROM accounts";
 
     public AccountBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public String generateAccountNumber() {

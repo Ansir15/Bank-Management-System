@@ -21,7 +21,7 @@ public class CustomerBackend {
     private static final String COUNT_QUERY       = "SELECT COUNT(*) AS total FROM customers";
 
     public CustomerBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertCustomer(Customers c) {

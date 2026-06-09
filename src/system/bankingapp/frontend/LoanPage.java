@@ -1,12 +1,13 @@
 package system.bankingapp.frontend;
 
-import system.bankingapp.backend.LoanBackend;
-import system.bankingapp.model.Loan;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
+import system.bankingapp.backend.LoanBackend;
+import system.bankingapp.model.Loan;
+import uifactory.AppTheme;
+import uifactory.UIFactory;
 
 import javax.swing.*;
-import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -40,161 +41,101 @@ public class LoanPage extends JPanel {
     }
 
     private JPanel buildTopBar() {
-        JPanel bar = new JPanel(new BorderLayout(16, 0));
-        bar.setOpaque(false);
-        bar.setBorder(new EmptyBorder(18, 24, 10, 24));
-
-        JLabel title = new JLabel("Loan Management");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-
-        totalLabel    = new JLabel();
-        approvedLabel = new JLabel();
-        pendingLabel  = new JLabel();
-        amountLabel   = new JLabel();
-        for (JLabel l : new JLabel[]{totalLabel, approvedLabel, pendingLabel, amountLabel})
-            l.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        approvedLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        amountLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-
-        JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        titleBox.setOpaque(false);
-        titleBox.add(title);
-        titleBox.add(Box.createHorizontalStrut(14));
-        titleBox.add(totalLabel);
-        titleBox.add(Box.createHorizontalStrut(12));
-        titleBox.add(approvedLabel);
-        titleBox.add(Box.createHorizontalStrut(12));
-        titleBox.add(pendingLabel);
-        titleBox.add(Box.createHorizontalStrut(12));
-        titleBox.add(amountLabel);
-
-        bar.add(titleBox,         BorderLayout.WEST);
+        JPanel bar = UIFactory.topBar();
+        totalLabel    = UIFactory.statLabel();
+        approvedLabel = UIFactory.statLabelBold();
+        pendingLabel  = UIFactory.statLabel();
+        amountLabel   = UIFactory.statLabelBold();
+        bar.add(UIFactory.titleGroup(UIFactory.pageTitle("Loan Management"),
+                totalLabel, approvedLabel, pendingLabel, amountLabel), BorderLayout.WEST);
         bar.add(buildFilterBar(), BorderLayout.CENTER);
         return bar;
     }
 
     private JPanel buildFilterBar() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        p.setOpaque(false);
+        JPanel p = UIFactory.filterBar();
 
-        searchField  = new JTextField(12);
-        searchField.putClientProperty("JTextField.placeholderText", "Search customer, type, status…");
+        searchField  = UIFactory.textField(12, "Search customer, type, status…");
         searchField.addActionListener(e -> doSearch());
 
-        statusFilter = new JComboBox<>(new String[]{"All Status","Pending","Approved","Rejected","Closed"});
-        typeFilter   = new JComboBox<>(new String[]{"All Types","Personal","Home","Car","Business"});
+        statusFilter = UIFactory.comboBox(new String[]{"All Status","Pending","Approved","Rejected","Closed"});
+        typeFilter   = UIFactory.comboBox(new String[]{"All Types","Personal","Home","Car","Business"});
         statusFilter.addActionListener(e -> doStatusFilter());
         typeFilter.addActionListener(e   -> doTypeFilter());
 
-        dateFrom = new JTextField(9);
-        dateTo   = new JTextField(9);
-        dateFrom.putClientProperty("JTextField.placeholderText", "yyyy-mm-dd");
-        dateTo.putClientProperty("JTextField.placeholderText",   "yyyy-mm-dd");
+        dateFrom = UIFactory.textField(9, "yyyy-mm-dd");
+        dateTo   = UIFactory.textField(9, "yyyy-mm-dd");
 
-        JButton btnDate    = new JButton(FontIcon.of(FontAwesomeSolid.FILTER, 14));
-        JButton btnRefresh = new JButton(FontIcon.of(FontAwesomeSolid.SYNC_ALT, 14));
-        btnDate.setToolTipText("Filter by date"); btnDate.setFocusPainted(false);
-        btnRefresh.setToolTipText("Refresh");     btnRefresh.setFocusPainted(false);
+        JButton btnDate    = UIFactory.iconButton(FontAwesomeSolid.FILTER, "Filter by date");
+        JButton btnRefresh = UIFactory.iconButton(FontAwesomeSolid.SYNC_ALT, "Refresh");
         btnDate.addActionListener(e    -> doDateFilter());
         btnRefresh.addActionListener(e -> refresh());
 
-        p.add(new JLabel("Search:")); p.add(searchField);
-        p.add(new JLabel("Status:")); p.add(statusFilter);
-        p.add(new JLabel("Type:"));   p.add(typeFilter);
-        p.add(new JLabel("From:"));   p.add(dateFrom);
-        p.add(new JLabel("To:"));     p.add(dateTo);
+        p.add(UIFactory.filterLabel("Search:")); p.add(searchField);
+        p.add(UIFactory.filterLabel("Status:")); p.add(statusFilter);
+        p.add(UIFactory.filterLabel("Type:"));   p.add(typeFilter);
+        p.add(UIFactory.filterLabel("From:"));   p.add(dateFrom);
+        p.add(UIFactory.filterLabel("To:"));     p.add(dateTo);
         p.add(btnDate); p.add(btnRefresh);
         return p;
     }
 
     private JSplitPane buildCenter() {
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, buildForm(), buildTablePanel());
-        split.setDividerLocation(310);
-        split.setDividerSize(6);
-        split.setOpaque(false);
-        split.setBorder(null);
-        return split;
+        return UIFactory.splitPane(buildForm(), buildTablePanel(), 310);
     }
 
     private JPanel buildForm() {
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.setBorder(new EmptyBorder(0, 16, 16, 8));
+        JPanel wrapper = UIFactory.formWrapper();
+        JPanel card = UIFactory.formCardShell("Loan Details");
 
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(UIManager.getColor("Separator.foreground")),
-                        "Loan Details", TitledBorder.LEFT, TitledBorder.TOP,
-                        new Font("Segoe UI", Font.BOLD, 13)),
-                new EmptyBorder(10, 14, 14, 14)));
-        card.setOpaque(false);
+        GridBagConstraints lc = UIFactory.labelConstraints();
+        GridBagConstraints fc = UIFactory.fieldConstraints();
 
-        GridBagConstraints lc = new GridBagConstraints();
-        lc.anchor = GridBagConstraints.WEST;
-        lc.insets = new Insets(5, 4, 5, 8);
-        lc.gridx  = 0;
-
-        GridBagConstraints fc = new GridBagConstraints();
-        fc.fill    = GridBagConstraints.HORIZONTAL;
-        fc.weightx = 1;
-        fc.insets  = new Insets(5, 0, 5, 4);
-        fc.gridx   = 1;
-
-        fldCustomer = new JComboBox<>();
-        fldType     = new JComboBox<>(new String[]{"Personal","Home","Car","Business"});
-        fldStatus   = new JComboBox<>(new String[]{"Pending","Approved","Rejected","Closed"});
-        fldPrincipal= new JTextField("0.00");
-        fldRate     = new JTextField("0.00");
-        fldTenure   = new JTextField("12");
-        fldIssued   = new JTextField();
-        fldIssued.putClientProperty("JTextField.placeholderText", "yyyy-mm-dd");
+        fldCustomer = UIFactory.comboBox(new String[]{});
+        fldType     = UIFactory.comboBox(new String[]{"Personal","Home","Car","Business"});
+        fldStatus   = UIFactory.comboBox(new String[]{"Pending","Approved","Rejected","Closed"});
+        fldPrincipal= UIFactory.textField(0);
+        fldPrincipal.setText("0.00");
+        fldRate     = UIFactory.textField(0);
+        fldRate.setText("0.00");
+        fldTenure   = UIFactory.textField(0);
+        fldTenure.setText("12");
+        fldIssued   = UIFactory.textField(0, "yyyy-mm-dd");
 
         for (String[] c : customerList) fldCustomer.addItem(c[1]);
 
         lblEmi   = new JLabel("EMI: —");
         lblTotal = new JLabel("Total: —");
-        lblEmi.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblTotal.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblEmi.setFont(AppTheme.tableHeader());
+        lblTotal.setFont(AppTheme.tableHeader());
 
-        JButton btnCalc = new JButton("Calculate");
-        btnCalc.setFocusPainted(false);
+        JButton btnCalc = UIFactory.smallButton("Calculate");
         btnCalc.addActionListener(e -> calculateEmi());
 
         String[]     labels = {"Customer *","Loan Type","Principal *","Interest Rate %","Tenure (months)","Status","Issued Date"};
         JComponent[] fields = {fldCustomer, fldType, fldPrincipal, fldRate, fldTenure, fldStatus, fldIssued};
 
         for (int i = 0; i < labels.length; i++) {
-            lc.gridy = i; fc.gridy = i;
-            card.add(new JLabel(labels[i]), lc);
-            card.add(fields[i], fc);
+            UIFactory.addFormRow(card, lc, fc, i, labels[i], fields[i]);
         }
 
         GridBagConstraints cc = new GridBagConstraints();
         cc.gridx = 0; cc.gridy = labels.length;
         cc.gridwidth = 2; cc.fill = GridBagConstraints.HORIZONTAL;
-        cc.insets = new Insets(6, 4, 2, 4);
+        cc.insets = new Insets(6, AppTheme.SPACING_XS, 2, AppTheme.SPACING_XS);
         card.add(btnCalc, cc);
 
-        cc.gridy = labels.length + 1; cc.insets = new Insets(2, 4, 2, 4);
-        JPanel emiPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        emiPanel.setOpaque(false);
+        cc.gridy = labels.length + 1; cc.insets = new Insets(2, AppTheme.SPACING_XS, 2, AppTheme.SPACING_XS);
+        JPanel emiPanel = UIFactory.transparentPanel(new GridLayout(1, 2, 10, 0));
         emiPanel.add(lblEmi); emiPanel.add(lblTotal);
         card.add(emiPanel, cc);
 
-        btnSave  = new JButton("Add Loan",  FontIcon.of(FontAwesomeSolid.PLUS_CIRCLE, 14));
-        btnClear = new JButton("Clear",     FontIcon.of(FontAwesomeSolid.TIMES, 14));
-        btnSave.setFocusPainted(false); btnClear.setFocusPainted(false);
+        btnSave  = UIFactory.saveButton("Add Loan", FontAwesomeSolid.PLUS_CIRCLE);
+        btnClear = UIFactory.clearButton();
         btnSave.addActionListener(e  -> saveLoan());
         btnClear.addActionListener(e -> clearForm());
 
-        JPanel btnRow = new JPanel(new GridLayout(1, 2, 8, 0));
-        btnRow.setOpaque(false);
-        btnRow.add(btnSave); btnRow.add(btnClear);
-
-        cc.gridy = labels.length + 2; cc.insets = new Insets(12, 4, 4, 4);
-        card.add(btnRow, cc);
-
+        card.add(UIFactory.buttonRow(btnSave, btnClear), UIFactory.buttonRowConstraints(labels.length + 2));
         wrapper.add(card, BorderLayout.NORTH);
         return wrapper;
     }
@@ -204,59 +145,22 @@ public class LoanPage extends JPanel {
             public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        table = new JTable(tableModel);
-        table.setRowHeight(34);
-        table.setShowVerticalLines(false);
-        table.setFillsViewportHeight(true);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        table.getTableHeader().setReorderingAllowed(false);
-
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object v,
-                                                           boolean sel, boolean foc, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, foc, row, col);
-                setBorder(new EmptyBorder(0, 10, 0, 10));
-                if (!sel) {
-                    setBackground(row % 2 == 0 ? t.getBackground() : stripe(t.getBackground()));
-                    setForeground(t.getForeground());
-                }
-                if (col == 8 && !sel) {
-                    String val = v != null ? v.toString() : "";
-                    switch (val) {
-                        case "Approved" -> setForeground(new Color(22, 163, 74));
-                        case "Pending"  -> setForeground(new Color(202, 138, 4));
-                        case "Rejected" -> setForeground(new Color(220, 38, 38));
-                        case "Closed"   -> setForeground(new Color(100, 100, 100));
-                    }
-                }
-                return this;
-            }
-        });
-
-        fitColumns(new int[]{40,130,80,100,65,70,100,110,80,90,140});
+        table = UIFactory.createTable(tableModel);
+        UIFactory.applyStatusColumn(table, 8, UIFactory.loanStatusColors());
+        UIFactory.setColumnWidths(table, new int[]{40,130,80,100,65,70,100,110,80,90,140});
 
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) populateForm();
         });
 
-        JPanel actionBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 4));
-        actionBar.setOpaque(false);
-        JButton btnEdit   = new JButton("Edit",   FontIcon.of(FontAwesomeSolid.EDIT,      14, new Color(37, 99, 235)));
-        JButton btnDelete = new JButton("Delete", FontIcon.of(FontAwesomeSolid.TRASH_ALT, 14, new Color(220, 38, 38)));
-        btnEdit.setFocusPainted(false); btnDelete.setFocusPainted(false);
+        JPanel actionBar = UIFactory.actionBar();
+        JButton btnEdit   = UIFactory.editButton();
+        JButton btnDelete = UIFactory.deleteButton();
         btnEdit.addActionListener(e   -> editSelected());
         btnDelete.addActionListener(e -> deleteSelected());
         actionBar.add(btnEdit); actionBar.add(btnDelete);
 
-        JPanel p = new JPanel(new BorderLayout(0, 8));
-        p.setOpaque(false);
-        p.setBorder(new EmptyBorder(0, 8, 16, 16));
-        p.add(actionBar,              BorderLayout.NORTH);
-        p.add(new JScrollPane(table), BorderLayout.CENTER);
-        return p;
+        return UIFactory.tablePanel(actionBar, new JScrollPane(table));
     }
 
     private void calculateEmi() {
@@ -292,29 +196,34 @@ public class LoanPage extends JPanel {
             }
 
             if (ok) {
-                JOptionPane.showMessageDialog(this, editingId == -1 ? "Loan added!" : "Loan updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                UIFactory.showMessage(this, editingId == -1 ? "Loan added!" : "Loan updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 clearForm(); refresh();
             } else {
-                JOptionPane.showMessageDialog(this, "Operation failed.", "Error", JOptionPane.ERROR_MESSAGE);
+                UIFactory.showMessage(this, "Operation failed.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Enter valid numbers for Principal, Rate and Tenure.", "Validation", JOptionPane.WARNING_MESSAGE);
+            UIFactory.showMessage(this, "Enter valid numbers for Principal, Rate and Tenure.", "Validation", JOptionPane.WARNING_MESSAGE);
         }
     }
 
     private void deleteSelected() {
         int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Select a loan first.", "Info", JOptionPane.INFORMATION_MESSAGE); return; }
+        if (row < 0) {
+            UIFactory.showMessage(this, "Select a loan first.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
         int id = (int) tableModel.getValueAt(row, 0);
-        if (JOptionPane.showConfirmDialog(this, "Delete this loan record?",
-                "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+        if (UIFactory.showConfirm(this, "Delete this loan record?", "Confirm") == JOptionPane.YES_OPTION) {
             if (backend.deleteLoan(id)) { clearForm(); refresh(); }
-            else JOptionPane.showMessageDialog(this, "Delete failed.", "Error", JOptionPane.ERROR_MESSAGE);
+            else UIFactory.showMessage(this, "Delete failed.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void editSelected() {
-        if (table.getSelectedRow() < 0) { JOptionPane.showMessageDialog(this, "Select a loan first.", "Info", JOptionPane.INFORMATION_MESSAGE); return; }
+        if (table.getSelectedRow() < 0) {
+            UIFactory.showMessage(this, "Select a loan first.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
         populateForm();
         btnSave.setText("Update Loan");
         btnSave.setIcon(FontIcon.of(FontAwesomeSolid.SAVE, 14));
@@ -350,7 +259,10 @@ public class LoanPage extends JPanel {
     private void doTypeFilter()   { String t = (String) typeFilter.getSelectedItem();   loadTable(t.startsWith("All") ? backend.getAllLoans() : backend.filterByType(t)); }
     private void doDateFilter() {
         String f = dateFrom.getText().trim(), t = dateTo.getText().trim();
-        if (f.isEmpty() || t.isEmpty()) { JOptionPane.showMessageDialog(this, "Enter both dates.", "Info", JOptionPane.INFORMATION_MESSAGE); return; }
+        if (f.isEmpty() || t.isEmpty()) {
+            UIFactory.showMessage(this, "Enter both dates.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
         loadTable(backend.filterByDateRange(f + " 00:00:00", t + " 23:59:59"));
     }
     private void refresh() {
@@ -377,17 +289,4 @@ public class LoanPage extends JPanel {
         pendingLabel.setText("⏳ Pending: " + backend.getPendingCount());
         amountLabel.setText("Portfolio: PKR " + String.format("%,.2f", backend.getTotalApprovedAmount()));
     }
-
-    private void fitColumns(int[] widths) {
-        for (int i = 0; i < widths.length; i++)
-            table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-    }
-
-    private Color stripe(Color base) {
-        if (base == null) base = Color.WHITE;
-        boolean dark = (base.getRed() + base.getGreen() + base.getBlue()) / 3 < 128;
-        int d = dark ? 15 : -12;
-        return new Color(clamp(base.getRed()+d), clamp(base.getGreen()+d), clamp(base.getBlue()+d));
-    }
-    private int clamp(int v) { return Math.max(0, Math.min(255, v)); }
 }

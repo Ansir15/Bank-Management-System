@@ -38,7 +38,7 @@ public class EmployeeBackend {
     private static final String TOTAL_SALARY_QUERY= "SELECT COALESCE(SUM(salary),0) FROM employees";
 
     public EmployeeBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertEmployee(Employee e) {

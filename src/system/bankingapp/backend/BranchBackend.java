@@ -36,7 +36,7 @@ public class BranchBackend {
                     "FROM branches b LEFT JOIN accounts a ON b.branch_id=a.branch_id GROUP BY b.branch_id";
 
     public BranchBackend() {
-        connection = DatabaseConnection.openConnection();
+        connection = DatabaseConnection.getInstance().getConnection();
     }
 
     public boolean insertBranch(Branch b) {
