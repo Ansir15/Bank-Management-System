@@ -4,6 +4,7 @@ import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.swing.FontIcon;
 import system.bankingapp.backend.AccountBackend;
 import system.bankingapp.model.Account;
+import system.bankingapp.util.InputValidator;
 import uifactory.UIFactory;
 
 import javax.swing.*;
@@ -148,43 +149,6 @@ public class AccountPage extends JPanel {
         return UIFactory.tablePanel(actionBar, new JScrollPane(table));
     }
 
-    private void saveAccount() {
-        if (fldAccNum.getText().trim().isEmpty()) {
-            UIFactory.showMessage(this, "Account number required.", "Validation", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        int custId = customerList.isEmpty() ? 0 : Integer.parseInt(customerList.get(fldCustomer.getSelectedIndex())[0]);
-        int branchId = branchList.isEmpty() ? 0 : Integer.parseInt(branchList.get(fldBranch.getSelectedIndex())[0]);
-        double bal;
-        try {
-            bal = Double.parseDouble(fldBalance.getText().trim());
-        } catch (NumberFormatException ex) {
-            UIFactory.showMessage(this, "Invalid balance.", "Validation", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        Account a = new Account(custId, branchId, fldAccNum.getText().trim(),
-                (String) fldType.getSelectedItem(), bal, (String) fldStatus.getSelectedItem());
-
-        boolean ok;
-        if (editingId == -1) {
-            ok = backend.insertAccount(a);
-        } else {
-            Account upd = new Account(editingId, custId, branchId, null, null,
-                    fldAccNum.getText().trim(), (String) fldType.getSelectedItem(),
-                    bal, (String) fldStatus.getSelectedItem(), null);
-            ok = backend.updateAccount(upd);
-        }
-
-        if (ok) {
-            UIFactory.showMessage(this, editingId == -1 ? "Account created!" : "Account updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            clearForm();
-            refresh();
-        } else {
-            UIFactory.showMessage(this, "Operation failed.", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
     private void deleteSelected() {
         int row = table.getSelectedRow();
         if (row < 0) {
@@ -270,5 +234,48 @@ public class AccountPage extends JPanel {
         }
         totalLabel.setText("Total: " + tableModel.getRowCount() + " accounts");
         balanceLabel.setText("Active Balance: PKR " + String.format("%,.2f", backend.getTotalActiveBalance()));
+    }
+    private void saveAccount() {
+        try {
+            String accNum = InputValidator.requireNonEmpty(this, fldAccNum.getText(), "Account Number");
+            InputValidator.requireMinLength(this, accNum, "Account Number", 6);
+            InputValidator.requireAlphanumeric(this, accNum, "Account Number");
+            double bal = InputValidator.requireDouble(this, fldBalance.getText(), "Balance");
+
+            if (customerList.isEmpty()) {
+                InputValidator.showError(this, "No customers available. Please add a customer first.");
+                return;
+            }
+            if (branchList.isEmpty()) {
+                InputValidator.showError(this, "No branches available. Please add a branch first.");
+                return;
+            }
+
+            int custId = Integer.parseInt(customerList.get(fldCustomer.getSelectedIndex())[0]);
+            int branchId = Integer.parseInt(branchList.get(fldBranch.getSelectedIndex())[0]);
+
+            Account a = new Account(custId, branchId, accNum,
+                    (String) fldType.getSelectedItem(), bal, (String) fldStatus.getSelectedItem());
+
+            boolean ok;
+            if (editingId == -1) {
+                ok = backend.insertAccount(a);
+            } else {
+                Account upd = new Account(editingId, custId, branchId, null, null,
+                        accNum, (String) fldType.getSelectedItem(),
+                        bal, (String) fldStatus.getSelectedItem(), null);
+                ok = backend.updateAccount(upd);
+            }
+
+            if (ok) {
+                UIFactory.showMessage(this, editingId == -1 ? "Account created!" : "Account updated!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                refresh();
+            } else {
+                InputValidator.showError(this, "Operation failed. Account number may already exist.");
+            }
+
+        } catch (InputValidator.ValidationException ignored) {
+        }
     }
 }

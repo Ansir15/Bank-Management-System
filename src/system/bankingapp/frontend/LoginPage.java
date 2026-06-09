@@ -27,7 +27,7 @@ public class LoginPage extends JFrame {
     public LoginPage() {
         setTitle("Banking Management System - Login");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(420, 560);
+        setSize(600, 560);
         setLocationRelativeTo(null);
         setResizable(false);
         setContentPane(buildUI());
@@ -38,7 +38,7 @@ public class LoginPage extends JFrame {
 
         JPanel card = UIFactory.roundedCard(new GridBagLayout());
         card.setOpaque(false);
-        card.setBorder(new EmptyBorder(40, 40, 40, 40));
+        card.setBorder(new EmptyBorder(40, 0, 40, 0));
         card.setPreferredSize(new Dimension(380, 500));
 
         GridBagConstraints c = new GridBagConstraints();
